@@ -71,9 +71,9 @@ public class LoganTest {
                 .setEncryptKey16("0123456789012345".getBytes())
                 .setEncryptIV16("0123456789012345".getBytes())
                 .build();
-        Logan.init(config);
-        Logan.setDebug(true);
-        Logan.setOnLoganProtocolStatus(new OnLoganProtocolStatus() {
+        CSPLogan.init(config);
+        CSPLogan.setDebug(true);
+        CSPLogan.setOnLoganProtocolStatus(new OnLoganProtocolStatus() {
             @Override
             public void loganProtocolStatus(String cmd, int code) {
                 Log.d(TAG, "clogan > cmd : " + cmd + " | " + "code : " + code);
@@ -83,13 +83,13 @@ public class LoganTest {
 
     @Test
     public void test002LoganW() throws InterruptedException {
-        Logan.w("Logan junit test write function", 1);
+        CSPLogan.w("CSPLogan junit test write function", 1);
         assertWriteLog();
     }
 
     @Test
     public void test003LoganF() {
-        Logan.f();
+        CSPLogan.f();
     }
 
     @Test
@@ -100,12 +100,12 @@ public class LoganTest {
 
             }
         };
-        Logan.s(getTodayDate(), sendLogRunnable);
+        CSPLogan.s(getTodayDate(), sendLogRunnable);
     }
 
     @Test
     public void test005LoganFilesInfo() {
-        Map<String, Long> map = Logan.getAllFilesInfo();
+        Map<String, Long> map = CSPLogan.getAllFilesInfo();
         if (map != null) {
             StringBuilder info = new StringBuilder();
             for (Map.Entry<String, Long> entry : map.entrySet()) {
@@ -127,7 +127,7 @@ public class LoganTest {
 
     private void assertWriteLog() throws InterruptedException {
         final int[] statusCode = new int[1];
-        Logan.setOnLoganProtocolStatus(new OnLoganProtocolStatus() {
+        CSPLogan.setOnLoganProtocolStatus(new OnLoganProtocolStatus() {
             @Override
             public void loganProtocolStatus(String cmd, int code) {
                 statusCode[0] = code;

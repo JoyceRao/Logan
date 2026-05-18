@@ -22,6 +22,8 @@
 
 package test.logan.dianping.com.logan;
 
+import static com.dianping.logan.CSPLogan.*;
+
 import android.app.Activity;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -33,7 +35,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.dianping.logan.Logan;
+import com.dianping.logan.CSPLogan;
 import com.dianping.logan.SendLogCallback;
 
 import org.json.JSONException;
@@ -70,7 +72,9 @@ public class MainActivity extends Activity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Logan.log(3, "啊哈哈哈哈66666");
+
+                logTech(3, "啊哈哈哈哈66666");
+                logBiz(4, "啊哈哈哈哈66666");
             }
         });
         batchBtn.setOnClickListener(new View.OnClickListener() {
@@ -107,7 +111,7 @@ public class MainActivity extends Activity {
                 try {
                     for (int i = 0; i < 9; i++) {
                         Log.d(TAG, "times : " + i);
-                        Logan.log(1, String.valueOf(i));
+                        logTech(1, String.valueOf(i));
                         Thread.sleep(5);
                     }
                     Log.d(TAG, "write log end");
@@ -127,11 +131,12 @@ public class MainActivity extends Activity {
         if (!TextUtils.isEmpty(ip)) {
             mSendLogRunnable.setIp(ip);
         }
-//        Logan.s(temp, mSendLogRunnable);
+//        CSPLogan.s(temp, mSendLogRunnable);
     }
 
     private void loganFilesInfo() {
-//        Map<String, Long> map = Logan.allFilesInfo();
+        allSubFilesInfo();
+//        Map<String, Long> map = CSPLogan.allFilesInfo();
 //        if (map != null) {
 //            StringBuilder info = new StringBuilder();
 //            for (Map.Entry<String, Long> entry : map.entrySet()) {
@@ -155,7 +160,8 @@ public class MainActivity extends Activity {
         final String url = "https://openlogan.inf.test.sankuai.com/logan/upload.json";
         SimpleDateFormat dataFormat = new SimpleDateFormat("yyyy-MM-dd");
         final String date = dataFormat.format(new Date(System.currentTimeMillis()));
-//        Logan.s(url, date, "1", "logan-test-unionid", "deviceId", buildVersion, appVersion, new SendLogCallback() {
+
+//        CSPLogan.s(url, date, "1", "logan-test-unionid", "deviceId", buildVersion, appVersion, new SendLogCallback() {
 //            @Override
 //            public void onLogSendCompleted(int statusCode, byte[] data) {
 //                final String resultData = data != null ? new String(data) : "";

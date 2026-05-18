@@ -3,7 +3,7 @@ package test.logan.dianping.com.logan;
 import android.app.Application;
 import android.util.Log;
 
-import com.dianping.logan.Logan;
+import com.dianping.logan.CSPLogan;
 import com.dianping.logan.LoganConfig;
 import com.dianping.logan.OnLoganProtocolStatus;
 
@@ -18,10 +18,10 @@ public class MyApplication extends Application {
     public void onCreate() {
         super.onCreate();
         initLogan();
-        Logan.log(3, "MyApplication onCreate");
-//        Logan.log("MyApplication onCreate", 3);
-//        Logan.w("MyApplication onCreate", 3);
-//        Logan.w("MyApplication onCreate", 3);
+        CSPLogan.log(3, "MyApplication onCreate");
+//        CSPLogan.log("MyApplication onCreate", 3);
+//        CSPLogan.w("MyApplication onCreate", 3);
+//        CSPLogan.w("MyApplication onCreate", 3);
     }
 
     private void initLogan() {
@@ -32,9 +32,9 @@ public class MyApplication extends Application {
                 .setEncryptKey16("0123456789012345".getBytes())
                 .setEncryptIV16("0123456789012345".getBytes())
                 .build();
-        Logan.init(config);
-        Logan.setDebug(true);
-        Logan.setOnLoganProtocolStatus(new OnLoganProtocolStatus() {
+        CSPLogan.init(config);
+        CSPLogan.setDebug(true);
+        CSPLogan.setOnLoganProtocolStatus(new OnLoganProtocolStatus() {
             @Override
             public void loganProtocolStatus(String cmd, int code) {
                 Log.d(TAG, "clogan > cmd : " + cmd + " | " + "code : " + code);

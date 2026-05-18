@@ -29,7 +29,7 @@ import java.util.Map;
 
 import kotlin.jvm.JvmStatic;
 
-public class Logan {
+public class CSPLogan {
 
     private static final Object LOCK = new Object();
     private static final LoganEngine ENGINE = new LoganEngine();
@@ -39,21 +39,21 @@ public class Logan {
     static boolean sDebug = false;
 
     /**
-     * 初始化 Logan 日志系统。
+     * 初始化 CSPLogan 日志系统。
      *
-     * @param loganConfig Logan 初始化配置，包含日志目录、加密参数和文件保留策略
+     * @param loganConfig CSPLogan 初始化配置，包含日志目录、加密参数和文件保留策略
      */
     public static void init(LoganConfig loganConfig) {
         if (loganConfig == null) {
-            throw new IllegalArgumentException("Logan init config invalid: config is null");
+            throw new IllegalArgumentException("CSPLogan init config invalid: config is null");
         }
         String invalidReason = loganConfig.invalidReason();
         if (invalidReason != null) {
-            throw new IllegalArgumentException("Logan init config invalid: " + invalidReason);
+            throw new IllegalArgumentException("CSPLogan init config invalid: " + invalidReason);
         }
         synchronized (LOCK) {
             if (sInitialized) {
-                throw new IllegalStateException("Logan.init was already called");
+                throw new IllegalStateException("CSPLogan.init was already called");
             }
             File logRoot = new File(loganConfig.mPathPath);
             int days = (int) Math.max(1L, loganConfig.mDay / (24L * 60L * 60L * 1000L));
@@ -70,7 +70,7 @@ public class Logan {
                 ENGINE.initAndAwait(config);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new IllegalStateException("Logan.init interrupted", e);
+                throw new IllegalStateException("CSPLogan.init interrupted", e);
             }
             if (!ENGINE.isNativeReady()) {
                 String err = CloganNative.loadError();
@@ -196,12 +196,12 @@ public class Logan {
 //    }
 
     /**
-     * 设置 Logan 调试开关。
+     * 设置 CSPLogan 调试开关。
      *
      * @param debug true 表示开启调试日志，false 表示关闭调试日志
      */
     public static void setDebug(boolean debug) {
-        Logan.sDebug = debug;
+        CSPLogan.sDebug = debug;
         if (sInitialized) {
             ENGINE.setDebugNative(debug);
         }
@@ -499,7 +499,7 @@ public class Logan {
 
     private static void requireInit() {
         if (!sInitialized || sLogRoot == null) {
-            throw new IllegalStateException("Logan is not initialized. Call Logan.init(...) first.");
+            throw new IllegalStateException("CSPLogan is not initialized. Call CSPLogan.init(...) first.");
         }
     }
 

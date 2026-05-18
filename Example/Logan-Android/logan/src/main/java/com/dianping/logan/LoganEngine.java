@@ -84,7 +84,7 @@ public final class LoganEngine {
         String key = new String(c.aesKey16);
         String iv = new String(c.aesIv16);
         CloganNative.clogan_init(cachePath, logPath, maxFileInt, key, iv);
-        CloganNative.clogan_debug(Logan.isDebugEnabled());
+        CloganNative.clogan_debug(CSPLogan.isDebugEnabled());
         sweepExpiredLogs();
         String today = LoganDateUtils.today();
         CloganNative.clogan_open(LoganPaths.mainPathname(today));

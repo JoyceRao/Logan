@@ -168,7 +168,7 @@ class CLoganProtocol implements LoganProtocolHandler {
             int isMain = is_main ? 1 : 0;
             int code = clogan_write(flag, log, local_time, thread_name, thread_id,
                     isMain);
-            if (code != ConstantCode.CloganStatus.CLOGAN_WRITE_SUCCESS || Logan.sDebug) {
+            if (code != ConstantCode.CloganStatus.CLOGAN_WRITE_SUCCESS || CSPLogan.sDebug) {
                 loganStatusCode(ConstantCode.CloganStatus.CLOGAN_WRITE_STATUS, code);
             }
         } catch (UnsatisfiedLinkError e) {

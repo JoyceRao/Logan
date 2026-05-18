@@ -129,12 +129,12 @@ class LoganThread extends Thread {
             mLoganProtocol.setOnLoganProtocolStatus(new OnLoganProtocolStatus() {
                 @Override
                 public void loganProtocolStatus(String cmd, int code) {
-                    Logan.onListenerLogWriteStatus(cmd, code);
+                    CSPLogan.onListenerLogWriteStatus(cmd, code);
                 }
             });
             mLoganProtocol.logan_init(mCachePath, mPath, (int) mMaxLogFile, mEncryptKey16,
                     mEncryptIv16);
-            mLoganProtocol.logan_debug(Logan.sDebug);
+            mLoganProtocol.logan_debug(CSPLogan.sDebug);
         }
 
         if (model.action == LoganModel.Action.WRITE) {
@@ -156,8 +156,8 @@ class LoganThread extends Thread {
     }
 
     private void doFlushLog2File() {
-        if (Logan.sDebug) {
-            Log.d(TAG, "Logan flush start");
+        if (CSPLogan.sDebug) {
+            Log.d(TAG, "CSPLogan flush start");
         }
         if (mLoganProtocol != null) {
             mLoganProtocol.logan_flush();
@@ -195,8 +195,8 @@ class LoganThread extends Thread {
     }
 
     private void doWriteLog2File(WriteAction action) {
-        if (Logan.sDebug) {
-            Log.d(TAG, "Logan write start");
+        if (CSPLogan.sDebug) {
+            Log.d(TAG, "CSPLogan write start");
         }
         if (mFileDirectory == null) {
             mFileDirectory = new File(mPath);
@@ -225,16 +225,16 @@ class LoganThread extends Thread {
     }
 
     private void doSendLog2Net(SendAction action) {
-        if (Logan.sDebug) {
-            Log.d(TAG, "Logan send start");
+        if (CSPLogan.sDebug) {
+            Log.d(TAG, "CSPLogan send start");
         }
         if (TextUtils.isEmpty(mPath) || action == null || !action.isValid()) {
             return;
         }
         boolean success = prepareLogFile(action);
         if (!success) {
-            if (Logan.sDebug) {
-                Log.d(TAG, "Logan prepare log file failed, can't find log file");
+            if (CSPLogan.sDebug) {
+                Log.d(TAG, "CSPLogan prepare log file failed, can't find log file");
             }
             return;
         }
@@ -278,7 +278,7 @@ class LoganThread extends Thread {
      * 发送日志前的预处理操作
      */
     private boolean prepareLogFile(SendAction action) {
-        if (Logan.sDebug) {
+        if (CSPLogan.sDebug) {
             Log.d(TAG, "prepare log file");
         }
         if (isFile(action.date)) { //是否有日期文件
