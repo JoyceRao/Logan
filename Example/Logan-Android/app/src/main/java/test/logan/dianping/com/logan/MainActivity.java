@@ -41,6 +41,7 @@ import com.dianping.logan.SendLogCallback;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
@@ -48,6 +49,7 @@ import java.util.Map;
 public class MainActivity extends Activity {
 
     private static final String TAG = MainActivity.class.getName();
+    private static final String FILE_NAME = "logan_v1";
 
     private TextView mTvInfo;
     private EditText mEditIp;
@@ -72,7 +74,7 @@ public class MainActivity extends Activity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                log(2, "啊哈哈哈哈66666");
                 logTech(3, "啊哈哈哈哈66666");
                 logBiz(4, "啊哈哈哈哈66666");
             }
@@ -135,16 +137,40 @@ public class MainActivity extends Activity {
     }
 
     private void loganFilesInfo() {
-        allSubFilesInfo();
-//        Map<String, Long> map = CSPLogan.allFilesInfo();
-//        if (map != null) {
-//            StringBuilder info = new StringBuilder();
-//            for (Map.Entry<String, Long> entry : map.entrySet()) {
-//                info.append("文件日期：").append(entry.getKey()).append("  文件大小（bytes）：").append(
-//                        entry.getValue()).append("\n");
-//            }
-//            mTvInfo.setText(info.toString());
-//        }
+        Map<String, String> map = allFilesInfo();
+        Map<String, Map<String, String>> subMap = allSubFilesInfo();
+        StringBuilder info = new StringBuilder();
+        if (map != null) {
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                info.append("文件日期：").append(entry.getKey()).append("  文件大小（bytes）：").append(
+                        entry.getValue()).append("\n");
+                String line = "文件日期：" + entry.getKey()
+                        + "  文件大小（bytes）：" + entry.getValue();
+                Log.d(TAG, line);
+            }
+        }
+        if (subMap != null) {
+            File logRoot = new File(getApplicationContext().getExternalFilesDir(null), FILE_NAME);
+            for (Map.Entry<String, Map<String, String>> dateEntry : subMap.entrySet()) {
+                String date = dateEntry.getKey();
+                Map<String, String> channelMap = dateEntry.getValue();
+                if (channelMap == null) {
+                    continue;
+                }
+                for (Map.Entry<String, String> channelEntry : channelMap.entrySet()) {
+                    String channel = channelEntry.getKey();
+                    String size = channelEntry.getValue();
+                    File logFile = new File(new File(logRoot, channel), date);
+                    String line = "子文件日期：" + date
+                            + "  通道：" + channel
+                            + "  文件大小（bytes）：" + size
+                            + "  路径：" + logFile.getAbsolutePath();
+                    info.append(line).append("\n");
+                    Log.d(TAG, line);
+                }
+            }
+        }
+        mTvInfo.setText(info.toString());
     }
 
     private void loganSendByDefault() {
