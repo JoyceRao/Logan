@@ -70,7 +70,7 @@ public class MainActivity extends Activity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Logan.w("啊哈哈哈哈66666", 2);
+                Logan.log(3, "啊哈哈哈哈66666");
             }
         });
         batchBtn.setOnClickListener(new View.OnClickListener() {
@@ -107,7 +107,7 @@ public class MainActivity extends Activity {
                 try {
                     for (int i = 0; i < 9; i++) {
                         Log.d(TAG, "times : " + i);
-                        Logan.w(String.valueOf(i), 1);
+                        Logan.log(1, String.valueOf(i));
                         Thread.sleep(5);
                     }
                     Log.d(TAG, "write log end");
@@ -127,19 +127,19 @@ public class MainActivity extends Activity {
         if (!TextUtils.isEmpty(ip)) {
             mSendLogRunnable.setIp(ip);
         }
-        Logan.s(temp, mSendLogRunnable);
+//        Logan.s(temp, mSendLogRunnable);
     }
 
     private void loganFilesInfo() {
-        Map<String, Long> map = Logan.getAllFilesInfo();
-        if (map != null) {
-            StringBuilder info = new StringBuilder();
-            for (Map.Entry<String, Long> entry : map.entrySet()) {
-                info.append("文件日期：").append(entry.getKey()).append("  文件大小（bytes）：").append(
-                        entry.getValue()).append("\n");
-            }
-            mTvInfo.setText(info.toString());
-        }
+//        Map<String, Long> map = Logan.allFilesInfo();
+//        if (map != null) {
+//            StringBuilder info = new StringBuilder();
+//            for (Map.Entry<String, Long> entry : map.entrySet()) {
+//                info.append("文件日期：").append(entry.getKey()).append("  文件大小（bytes）：").append(
+//                        entry.getValue()).append("\n");
+//            }
+//            mTvInfo.setText(info.toString());
+//        }
     }
 
     private void loganSendByDefault() {
@@ -155,12 +155,12 @@ public class MainActivity extends Activity {
         final String url = "https://openlogan.inf.test.sankuai.com/logan/upload.json";
         SimpleDateFormat dataFormat = new SimpleDateFormat("yyyy-MM-dd");
         final String date = dataFormat.format(new Date(System.currentTimeMillis()));
-        Logan.s(url, date, "1", "logan-test-unionid", "deviceId", buildVersion, appVersion, new SendLogCallback() {
-            @Override
-            public void onLogSendCompleted(int statusCode, byte[] data) {
-                final String resultData = data != null ? new String(data) : "";
-                Log.d(TAG, "日志上传结果, http状态码: " + statusCode + ", 详细: " + resultData);
-            }
-        });
+//        Logan.s(url, date, "1", "logan-test-unionid", "deviceId", buildVersion, appVersion, new SendLogCallback() {
+//            @Override
+//            public void onLogSendCompleted(int statusCode, byte[] data) {
+//                final String resultData = data != null ? new String(data) : "";
+//                Log.d(TAG, "日志上传结果, http状态码: " + statusCode + ", 详细: " + resultData);
+//            }
+//        });
     }
 }

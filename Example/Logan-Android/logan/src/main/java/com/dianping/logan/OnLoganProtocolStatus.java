@@ -22,6 +22,10 @@
 
 package com.dianping.logan;
 
+/**
+ * @deprecated Old native status listener retained for compatibility.
+ */
+@Deprecated
 public interface OnLoganProtocolStatus {
     void loganProtocolStatus(String cmd, int code);
 }

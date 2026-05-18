@@ -24,56 +24,112 @@ package com.dianping.logan;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+
+import kotlin.jvm.JvmStatic;
 
 public class Logan {
 
+    private static final Object LOCK = new Object();
+    private static final LoganEngine ENGINE = new LoganEngine();
     private static OnLoganProtocolStatus sLoganProtocolStatus;
-    private static LoganControlCenter sLoganControlCenter;
+    private static File sLogRoot;
+    private static volatile boolean sInitialized;
     static boolean sDebug = false;
 
     /**
-     * @brief Logan初始化
+     * 初始化 Logan 日志系统。
+     *
+     * @param loganConfig Logan 初始化配置，包含日志目录、加密参数和文件保留策略
      */
     public static void init(LoganConfig loganConfig) {
-        sLoganControlCenter = LoganControlCenter.instance(loganConfig);
+        if (loganConfig == null) {
+            throw new IllegalArgumentException("Logan init config invalid: config is null");
+        }
+        String invalidReason = loganConfig.invalidReason();
+        if (invalidReason != null) {
+            throw new IllegalArgumentException("Logan init config invalid: " + invalidReason);
+        }
+        synchronized (LOCK) {
+            if (sInitialized) {
+                throw new IllegalStateException("Logan.init was already called");
+            }
+            File logRoot = new File(loganConfig.mPathPath);
+            int days = (int) Math.max(1L, loganConfig.mDay / (24L * 60L * 60L * 1000L));
+            LoganInitConfig config = new LoganInitConfig.Builder()
+                    .cacheDirectory(new File(loganConfig.mCachePath))
+                    .loganLogDirectory(logRoot)
+                    .aesKey16(loganConfig.mEncryptKey16)
+                    .aesIv16(loganConfig.mEncryptIv16)
+                    .maxFileBytes(loganConfig.mMaxFile)
+                    .minFreeDiskBytes(loganConfig.mMinSDCard)
+                    .maxReversedDays(days)
+                    .build();
+            try {
+                ENGINE.initAndAwait(config);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Logan.init interrupted", e);
+            }
+            if (!ENGINE.isNativeReady()) {
+                String err = CloganNative.loadError();
+                throw new IllegalStateException(err != null ? err : "clogan native init failed");
+            }
+            sLogRoot = logRoot;
+            sInitialized = true;
+        }
     }
 
     /**
+     * @deprecated Old short-form write API. Use {@link #log(int, String)}.
      * @param log  表示日志内容
      * @param type 表示日志类型
      * @brief Logan写入日志
      */
-    public static void w(String log, int type) {
-        if (sLoganControlCenter == null) {
-            throw new RuntimeException("Please initialize Logan first");
-        }
-        sLoganControlCenter.write(log, type);
-    }
+//    @Deprecated
+//    public static void w(String log, int type) {
+//        log(type, log);
+//    }
 
     /**
+     * @deprecated Old short-form flush API. Use {@link #flush()}.
      * @brief 立即写入日志文件
      */
-    public static void f() {
-        if (sLoganControlCenter == null) {
-            throw new RuntimeException("Please initialize Logan first");
-        }
-        sLoganControlCenter.flush();
-    }
+//    @Deprecated
+//    public static void f() {
+//        flush();
+//    }
 
     /**
+     * @deprecated Old custom upload API removed from LoganSpec. Use
+     * {@link #uploadWithInterception(String, String, String, String, String, String, LoganUploadInterceptor, LoganUploadResultCallback)}
+     * or {@link #uploadAll(String, String, String, String, String, LoganUploadInterceptor, LoganUploadResultCallback)}.
      * @param dates    日期数组，格式：“2018-07-27”
      * @param runnable 发送操作
      * @brief 发送日志
      */
-    public static void s(String[] dates, SendLogRunnable runnable) {
-        if (sLoganControlCenter == null) {
-            throw new RuntimeException("Please initialize Logan first");
-        }
-        sLoganControlCenter.send(dates, runnable);
-    }
+//    @Deprecated
+//    public static void s(String[] dates, SendLogRunnable runnable) {
+//        requireInit();
+//        if (dates == null || runnable == null) {
+//            return;
+//        }
+//        for (String date : dates) {
+//            if (date == null || date.length() == 0) {
+//                continue;
+//            }
+//            File file = new File(sLogRoot, date);
+//            if (file.isFile()) {
+//                runnable.sendLog(file);
+//                runnable.finish();
+//            }
+//        }
+//    }
 
     /**
+     * @deprecated Old upload API. Use
+     * {@link #upload(String, String, String, String, String, String, LoganUploadResultCallback)}.
      * @param url             接受日志的服务器完整url.
      * @param date            日志日期 格式："2018-11-21".
      * @param appId           当前应用的唯一标识,在多App时区分日志来源App.
@@ -83,68 +139,93 @@ public class Logan {
      * @param appVersion      上报源的App版本.
      * @param sendLogCallback 上报结果回调（子线程调用）.
      */
-    public static void s(String url, String date, String appId, String unionId, String deviceId,
-                         String buildVersion, String appVersion, SendLogCallback sendLogCallback) {
-        final Map<String, String> headers = new HashMap<>();
-        headers.put("fileDate", date);
-        headers.put("appId", appId);
-        headers.put("unionId", unionId);
-        headers.put("deviceId", deviceId);
-        headers.put("buildVersion", buildVersion);
-        headers.put("appVersion", appVersion);
-        headers.put("platform", "1");
-        s(url, date, headers, sendLogCallback);
-    }
+//    @Deprecated
+//    public static void s(String url, String date, String appId, String unionId, String deviceId,
+//                         String buildVersion, String appVersion, SendLogCallback sendLogCallback) {
+//        final Map<String, String> headers = new HashMap<>();
+//        headers.put("fileDate", date);
+//        headers.put("appId", appId);
+//        headers.put("unionId", unionId);
+//        headers.put("deviceId", deviceId);
+//        headers.put("bundleVersion", buildVersion);
+//        headers.put("appVersion", appVersion);
+//        headers.put("platform", "1");
+//        s(url, date, headers, sendLogCallback);
+//    }
 
     /**
+     * @deprecated Old header-map upload API. Use
+     * {@link #uploadWithInterception(String, String, String, String, String, String, LoganUploadInterceptor, LoganUploadResultCallback)}.
      * @param url             接受日志的服务器完整url.
      * @param date            日志日期 格式："2018-11-21".
      * @param headers         请求头信息.
      * @param sendLogCallback 上报结果回调（子线程调用）.
      */
-    public static void s(String url, String date, Map<String, String> headers, SendLogCallback sendLogCallback) {
-        if (sLoganControlCenter == null) {
-            throw new RuntimeException("Please initialize Logan first");
-        }
-        final SendLogDefaultRunnable sendLogRunnable = new SendLogDefaultRunnable();
-        sendLogRunnable.setUrl(url);
-        sendLogRunnable.setSendLogCallback(sendLogCallback);
-        sendLogRunnable.setRequestHeader(headers);
-        sLoganControlCenter.send(new String[]{date}, sendLogRunnable);
-    }
+//    @Deprecated
+//    public static void s(String url, String date, Map<String, String> headers, SendLogCallback sendLogCallback) {
+//        requireInit();
+//        Map<String, String> safeHeaders = headers == null ? new HashMap<String, String>() : headers;
+//        upload(url, date,
+//                safeHeaders.get("retrievalId"),
+//                safeHeaders.get("appId"),
+//                safeHeaders.get("unionId"),
+//                safeHeaders.get("deviceId"),
+//                safeHeaders.get("bundleVersion"),
+//                safeHeaders.get("appVersion"),
+//                safeHeaders.get("platform"),
+//                (success, fileUrl, filePath) -> {
+//                    if (sendLogCallback != null) {
+//                        sendLogCallback.onLogSendCompleted(success ? 200 : -1, null);
+//                    }
+//                });
+//    }
 
     /**
+     * @deprecated Old query API returned {@code Long}. Use {@link #allFilesInfo()}.
      * @brief 返回所有日志文件信息
      */
-    public static Map<String, Long> getAllFilesInfo() {
-        if (sLoganControlCenter == null) {
-            throw new RuntimeException("Please initialize Logan first");
-        }
-        File dir = sLoganControlCenter.getDir();
-        if (!dir.exists()) {
-            return null;
-        }
-        File[] files = dir.listFiles();
-        if (files == null) {
-            return null;
-        }
-        Map<String, Long> allFilesInfo = new HashMap<>();
-        for (File file : files) {
-            try {
-                allFilesInfo.put(Util.getDateStr(Long.parseLong(file.getName())), file.length());
-            } catch (NumberFormatException e) {
-                // ignore
-            }
-        }
-        return allFilesInfo;
-    }
+//    @Deprecated
+//    public static Map<String, Long> getAllFilesInfo() {
+//        requireInit();
+//        Map<String, String> info = allFilesInfo();
+//        Map<String, Long> result = new LinkedHashMap<>();
+//        for (Map.Entry<String, String> e : info.entrySet()) {
+//            result.put(e.getKey(), Long.valueOf(e.getValue()));
+//        }
+//        return result;
+//    }
 
     /**
-     * @brief Logan Debug开关
+     * 设置 Logan 调试开关。
+     *
+     * @param debug true 表示开启调试日志，false 表示关闭调试日志
      */
     public static void setDebug(boolean debug) {
         Logan.sDebug = debug;
+        if (sInitialized) {
+            ENGINE.setDebugNative(debug);
+        }
     }
+
+    /**
+     * 设置日志文件最大保留天数。
+     *
+     * @param maxReversedDate 最大保留天数，小于等于 0 的值由底层实现处理
+     */
+    public static void setMaxReversedDate(int maxReversedDate) {
+        requireInit();
+        ENGINE.setMaxReversedDays(maxReversedDate);
+    }
+
+    /**
+     * 控制底层 C 库日志输出。
+     *
+     * @param enabled true 表示开启底层日志输出，false 表示关闭
+     */
+    public static void printClibLog(boolean enabled) {
+        setDebug(enabled);
+    }
+
 
     static void onListenerLogWriteStatus(String name, int status) {
         if (sLoganProtocolStatus != null) {
@@ -152,7 +233,285 @@ public class Logan {
         }
     }
 
+    /**
+     * 设置底层协议状态监听器。
+     *
+     * @param listener 协议状态回调，传 null 表示清空监听器
+     * @deprecated Old native status listener API retained for compatibility.
+     */
+    @Deprecated
     public static void setOnLoganProtocolStatus(OnLoganProtocolStatus listener) {
         sLoganProtocolStatus = listener;
+    }
+
+    /**
+     * 写入主通道日志。
+     *
+     * @param type 日志类型，由业务侧定义
+     * @param log  日志内容
+     */
+    @JvmStatic
+    public static void log(int type, String log) {
+        requireInit();
+        ENGINE.write(type, log, LoganChannel.MAIN);
+    }
+
+    /**
+     * 写入技术通道日志。
+     *
+     * @param type 日志类型，由业务侧定义
+     * @param log  日志内容
+     */
+    public static void logTech(int type, String log) {
+        requireInit();
+        ENGINE.write(type, log, LoganChannel.TECH);
+    }
+
+    /**
+     * 写入业务通道日志。
+     *
+     * @param type 日志类型，由业务侧定义
+     * @param log  日志内容
+     */
+    public static void logBiz(int type, String log) {
+        requireInit();
+        ENGINE.write(type, log, LoganChannel.BIZ);
+    }
+
+    /**
+     * 生成统一格式的标准日志内容。
+     *
+     * @param level        日志级别
+     * @param currentName  当前线程或调用方名称
+     * @param threadCount  线程标识或线程计数
+     * @param userId       用户标识
+     * @param category     日志分类
+     * @param bizModule    业务模块
+     * @param flowId       流程 ID
+     * @param stage        当前阶段
+     * @param functionName 函数名或功能名
+     * @param location     代码位置
+     * @param message      日志消息
+     * @return 拼接后的标准日志字符串
+     */
+    public static String createStandardLog(String level,
+            String tag,
+            String currentName,
+            Long threadCount,
+            String userId,
+            Integer category,
+            String bizModule,
+            String flowId,
+            String stage,
+            String functionName,
+            String location,
+            String message) {
+        String cn = validLogStr(currentName);
+        String lv = validLogStr(level);
+        String t = validLogStr(tag);
+        String uid = validLogStr(userId);
+        String bm = validLogStr(bizModule);
+        String fid = validLogStr(flowId);
+        String st = validLogStr(stage);
+        String fn = validLogStr(functionName);
+        String loc = validLogStr(location);
+        String msg = validLogStr(message);
+        String part1 = cn + ":" + validLogStr(threadCount);
+        String part5 = "[" + bm + ", " + fid + ", " + st + ", " + fn + "," + loc + "," + t + "]";
+        return part1 + "|" + lv + "|" + uid + "|" + validLogStr(category) + "|" + part5 + "|" + msg;
+    }
+
+    /**
+     * 立即将内存中的日志刷入文件。
+     */
+    @JvmStatic
+    public static void flush() {
+        requireInit();
+        ENGINE.flush();
+    }
+
+    /**
+     * 上传指定日期的日志，并允许传入完整元信息和上传拦截器。
+     *
+     * @param url            上传接口地址
+     * @param date           日志日期，格式为 yyyy-MM-dd
+     * @param retrievalId    检索 ID
+     * @param appId          应用 ID
+     * @param unionId        用户唯一标识
+     * @param deviceId       设备 ID
+     * @param bundleVersion  构建版本号
+     * @param appVersion     应用版本号
+     * @param interceptor    上传拦截器，可为 null
+     * @param resultCallback 上传结果回调，可为 null
+     */
+    public static void uploadWithInterception(String url,
+            String date,
+            String retrievalId,
+            String appId,
+            String unionId,
+            String deviceId,
+            String bundleVersion,
+            String appVersion,
+            LoganUploadInterceptor interceptor,
+            LoganUploadResultCallback resultCallback) {
+        requireInit();
+        if (url == null || url.length() == 0 || date == null || date.length() == 0) {
+            ENGINE.postUploadCallback(resultCallback, false, null, null);
+            return;
+        }
+        if (!LoganDateUtils.isValidYyyyMmDd(date)) {
+            ENGINE.postUploadCallback(resultCallback, false, null, null);
+            return;
+        }
+        LoganUploadCoordinator.uploadOneDate(ENGINE, url, date, retrievalId, appId, unionId,
+                deviceId, bundleVersion, appVersion, "1", interceptor, resultCallback);
+    }
+
+    /**
+     * 上传指定日期的日志，并传入完整元信息。
+     *
+     * @param url            上传接口地址
+     * @param date           日志日期，格式为 yyyy-MM-dd
+     * @param retrievalId    检索 ID
+     * @param appId          应用 ID
+     * @param unionId        用户唯一标识
+     * @param deviceId       设备 ID
+     * @param bundleVersion  构建版本号
+     * @param appVersion     应用版本号
+     * @param platform       平台标识
+     * @param resultCallback 上传结果回调，可为 null
+     */
+    public static void upload(String url,
+            String date,
+            String retrievalId,
+            String appId,
+            String unionId,
+            String deviceId,
+            String bundleVersion,
+            String appVersion,
+            String platform,
+            LoganUploadResultCallback resultCallback) {
+        uploadWithInterception(url, date, retrievalId, appId, unionId, deviceId, bundleVersion,
+                appVersion, null, resultCallback);
+    }
+
+    /**
+     * 上传本地保存的全部日期日志，并允许调用方拦截或改写上传过程。
+     *
+     * @param url            上传接口地址
+     * @param retrievalId    检索 ID
+     * @param appId          应用 ID
+     * @param unionId        用户唯一标识
+     * @param deviceId       设备 ID
+     * @param interceptor    上传拦截器，可为 null
+     * @param resultCallback 上传结果回调，可为 null
+     */
+    public static void uploadAll(String url,
+            String retrievalId,
+            String appId,
+            String unionId,
+            String deviceId,
+            LoganUploadInterceptor interceptor,
+            LoganUploadResultCallback resultCallback) {
+        uploadAll(url, retrievalId, appId, unionId, deviceId, null, null, "1", interceptor,
+                resultCallback);
+    }
+
+    /**
+     * 上传本地保存的全部日期日志，并传入完整元信息和上传拦截器。
+     *
+     * @param url            上传接口地址
+     * @param retrievalId    检索 ID
+     * @param appId          应用 ID
+     * @param unionId        用户唯一标识
+     * @param deviceId       设备 ID
+     * @param bundleVersion  构建版本号
+     * @param appVersion     应用版本号
+     * @param platform       平台标识
+     * @param interceptor    上传拦截器，可为 null
+     * @param resultCallback 上传结果回调，可为 null
+     */
+    public static void uploadAll(String url,
+            String retrievalId,
+            String appId,
+            String unionId,
+            String deviceId,
+            String bundleVersion,
+            String appVersion,
+            String platform,
+            LoganUploadInterceptor interceptor,
+            LoganUploadResultCallback resultCallback) {
+        requireInit();
+        if (url == null || url.length() == 0) {
+            ENGINE.postUploadCallback(resultCallback, false, null, null);
+            return;
+        }
+        LoganUploadCoordinator.uploadAllDates(ENGINE, url, retrievalId, appId, unionId,
+                deviceId, bundleVersion, appVersion, platform, interceptor, resultCallback);
+    }
+
+    /**
+     * 获取本地日志文件信息。
+     *
+     * @return key 为日期，value 为文件大小等信息的映射
+     */
+    public static Map<String, String> allFilesInfo() {
+        requireInit();
+        return ENGINE.allFilesInfo();
+    }
+
+    /**
+     * 获取本地各通道日志文件信息。
+     *
+     * @return 第一层 key 为通道或目录，第二层 key 为日期，value 为文件大小等信息
+     */
+    public static Map<String, Map<String, String>> allSubFilesInfo() {
+        requireInit();
+        return ENGINE.allSubFilesInfo();
+    }
+
+    /**
+     * 获取当天日期字符串。
+     *
+     * @return 当前日期，格式为 yyyy-MM-dd
+     */
+    public static String todaysDate() {
+        return LoganDateUtils.today();
+    }
+
+    /**
+     * 清理指定日期的本地日志。
+     *
+     * @param date 日志日期，格式为 yyyy-MM-dd
+     */
+    public static void clearLogOfDate(String date) {
+        requireInit();
+        ENGINE.clearLogOfDate(date);
+    }
+
+    /**
+     * 清理全部本地日志。
+     */
+    public static void clearAllLogs() {
+        requireInit();
+        ENGINE.clearAllLogs();
+    }
+
+    private static void requireInit() {
+        if (!sInitialized || sLogRoot == null) {
+            throw new IllegalStateException("Logan is not initialized. Call Logan.init(...) first.");
+        }
+    }
+
+    static boolean isDebugEnabled() {
+        return sDebug;
+    }
+
+    private static String validLogStr(String s) {
+        return (s != null && s.length() > 0) ? s : "-";
+    }
+
+    private static String validLogStr(Object o) {
+        return o != null ? String.valueOf(o) : "-";
     }
 }

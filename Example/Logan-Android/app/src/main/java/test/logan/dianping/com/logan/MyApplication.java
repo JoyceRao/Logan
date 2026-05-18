@@ -18,9 +18,10 @@ public class MyApplication extends Application {
     public void onCreate() {
         super.onCreate();
         initLogan();
-        Logan.w("MyApplication onCreate", 3);
-        Logan.w("MyApplication onCreate", 3);
-        Logan.w("MyApplication onCreate", 3);
+        Logan.log(3, "MyApplication onCreate");
+//        Logan.log("MyApplication onCreate", 3);
+//        Logan.w("MyApplication onCreate", 3);
+//        Logan.w("MyApplication onCreate", 3);
     }
 
     private void initLogan() {

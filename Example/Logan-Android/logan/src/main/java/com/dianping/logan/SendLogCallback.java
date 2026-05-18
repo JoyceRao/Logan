@@ -2,7 +2,10 @@ package com.dianping.logan;
 
 /**
  * Create by luoheng on 2019-11-20.
+ *
+ * @deprecated Old upload callback API. Use {@link LoganUploadResultCallback}.
  */
+@Deprecated
 public interface SendLogCallback {
     /**
      * 日志上传结果回调方法.

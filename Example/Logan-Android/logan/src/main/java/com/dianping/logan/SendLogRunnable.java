@@ -26,6 +26,10 @@ import android.text.TextUtils;
 
 import java.io.File;
 
+/**
+ * @deprecated Old custom upload API removed from LoganSpec. Use {@link LoganUploadInterceptor}.
+ */
+@Deprecated
 public abstract class SendLogRunnable implements Runnable {
     public static final int SENDING = 10001;
     public static final int FINISH = 10002;

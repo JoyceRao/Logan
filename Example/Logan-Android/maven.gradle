@@ -1,0 +1,91 @@
+/**
+ * Maven 发布 jar/aar 到本地和远端
+ *
+ * 执行命令：./gradlew uploadLocal 发布 library 到本地仓库（本地私有目录 ~/user.home/.m2/repository）
+ * 执行命令：./gradlew uploadRemoteOld 使用 maven plugin 发布 library 到 nexus 仓库
+ * 执行命令：./gradlew uploadRemoteNew 使用 maven-publish plugin 发布 library 到 nexus 仓库
+ */
+apply plugin: "maven-publish"
+
+def isAndroidLib = project.plugins.hasPlugin('com.android.library')
+def isAndroidKotlinLib = project.plugins.hasPlugin('kotlin-android')
+def releasesRepoUrl = "http://nexus.dns.guazi.com:8081/nexus/repository/wuxian_release/"
+def snapshotsRepoUrl = "http://nexus.dns.guazi.com:8081/nexus/repository/wuxian_snapshot/"
+def localRepoUrl = "~/.m2/repository"
+
+// maven-publish
+// 设置打包源码
+task sourcesJar(type: Jar) {
+    classifier 'sources'
+    if (isAndroidLib || isAndroidKotlinLib) {
+        from android.sourceSets.main.java.srcDirs
+    } else {
+        from sourceSets.main.allSource
+    }
+}
+
+artifacts {
+    archives sourcesJar
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                if(isAndroidLib || isAndroidKotlinLib) {
+                    // APG 3.6.0 以后使用，可生成 pom.xml dependencies 依赖项
+                     from components.release
+                    //artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+                } else {
+                    // 使用 Maven 提供的 Java 软件模板，构建内容和模板都来自在 Java 插件中定义的 java 信息 java: jar web: war
+                    from components.java
+
+                    // // Publish a file created outside of the build
+                    //artifact 'xx.jar'
+                }
+
+                // Publish the output of the sourceJar task
+                artifact sourcesJar
+
+                groupId "cn.chesupai.android"
+                artifactId project.getName()
+                version project.ext.versionName
+            }
+        }
+
+        repositories {
+            // 设置本地 maven 仓库地址 (~/.m2/repository）
+            maven {
+                url = (project.ext.versionName.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl)
+                allowInsecureProtocol = true
+                credentials {
+                    username = nexusUserName
+                    password = nexusPassword
+                }
+            }
+            // 可设置其他，jcenter、ivy,etc...
+        }
+    }
+}
+
+// create useful tasks
+project.afterEvaluate {
+    task uploadRemoteOld {
+        group = 'maven'
+        description = 'assemble and upload aar to remote, the uploadRemoteNew task depends on clean & uploadArchive'
+        dependsOn clean
+    }
+
+    task uploadRemoteNew {
+        group = 'maven'
+        description = 'assemble and upload aar to remote, the uploadRemote task depends on clean & pulication'
+        dependsOn clean, publishReleasePublicationToMavenRepository
+    }
+
+    task uploadLocal {
+        group = 'maven'
+        description = "assemble and upload aar to local, the local path is : '~/user.home/.m2/repository'"
+        dependsOn clean, publishReleasePublicationToMavenLocal
+    }
+}
+

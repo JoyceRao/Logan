@@ -28,6 +28,7 @@ public class LoganConfig {
 
     private static final long DAYS = 24 * 60 * 60 * 1000; //天
     private static final long M = 1024 * 1024; //M
+    private static final int AES_BYTES = 16;
     private static final long DEFAULT_DAY = 7 * DAYS; //默认删除天数
     private static final long DEFAULT_FILE_SIZE = 10 * M;
     private static final long DEFAULT_MIN_SDCARD_SIZE = 50 * M; //最小的SD卡小于这个大小不写入
@@ -45,12 +46,29 @@ public class LoganConfig {
     byte[] mEncryptIv16; //128位aes加密IV
 
     boolean isValid() {
-        boolean valid = false;
-        if (!TextUtils.isEmpty(mCachePath) && !TextUtils.isEmpty(mPathPath) && mEncryptKey16 != null
-                && mEncryptIv16 != null) {
-            valid = true;
+        return invalidReason() == null;
+    }
+
+    String invalidReason() {
+        if (TextUtils.isEmpty(mCachePath)) {
+            return "cachePath is empty";
         }
-        return valid;
+        if (TextUtils.isEmpty(mPathPath)) {
+            return "path is empty";
+        }
+        if (mEncryptKey16 == null) {
+            return "encryptKey16 is null";
+        }
+        if (mEncryptIv16 == null) {
+            return "encryptIv16 is null";
+        }
+        if (mEncryptKey16.length != AES_BYTES) {
+            return "encryptKey16 length must be 16";
+        }
+        if (mEncryptIv16.length != AES_BYTES) {
+            return "encryptIv16 length must be 16";
+        }
+        return null;
     }
 
     private LoganConfig() {
@@ -138,6 +156,10 @@ public class LoganConfig {
             config.setDay(mDay);
             config.setEncryptKey16(mEncryptKey16);
             config.setEncryptIV16(mEncryptIv16);
+            String invalidReason = config.invalidReason();
+            if (invalidReason != null) {
+                throw new IllegalArgumentException("LoganConfig invalid: " + invalidReason);
+            }
             return config;
         }
     }

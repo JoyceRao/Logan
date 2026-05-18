@@ -43,6 +43,11 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 
+/**
+ * @deprecated Old built-in upload runnable. Use {@link Logan#upload(String, String, String, String, String, String, LoganUploadResultCallback)}
+ * or {@link Logan#uploadWithInterception(String, String, String, String, String, String, LoganUploadInterceptor, LoganUploadResultCallback)}.
+ */
+@Deprecated
 public class SendLogDefaultRunnable extends SendLogRunnable {
 
     private static final String TAG = "SendLogDefaultRunnable";
