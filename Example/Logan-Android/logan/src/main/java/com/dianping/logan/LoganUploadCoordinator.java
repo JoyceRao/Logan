@@ -42,7 +42,8 @@ final class LoganUploadCoordinator {
                 engine.flushNative();
             }
             runJobIndex(engine, jobs, 0, url, retrievalId, appId, unionId, deviceId,
-                    bundleVersion, appVersion, platform, interceptor, cb, null);
+                    bundleVersion, appVersion, platform, interceptor, cb, null,
+                    new UploadChainState());
         });
     }
 
@@ -68,7 +69,8 @@ final class LoganUploadCoordinator {
             }
             Iterator<String> it = dates.iterator();
             uploadNextDate(engine, it, url, retrievalId, appId, unionId, deviceId,
-                    bundleVersion, appVersion, platform, interceptor, cb);
+                    bundleVersion, appVersion, platform, interceptor, cb,
+                    new UploadChainState());
         });
     }
 
@@ -81,23 +83,25 @@ final class LoganUploadCoordinator {
             @Nullable String appVersion,
             @Nullable String platform,
             @Nullable LoganUploadInterceptor interceptor,
-            @Nullable LoganUploadResultCallback cb) {
+            @Nullable LoganUploadResultCallback cb,
+            UploadChainState state) {
         if (!it.hasNext()) {
-            engine.completeUploadChain(cb, true, null, null);
+            engine.completeUploadChain(cb, !state.hasFailure, state.firstFailedFileUrl,
+                    state.firstFailedFilePath);
             return;
         }
         String date = it.next();
         List<Job> jobs = buildJobs(engine.getLogRoot(), date);
         if (jobs.isEmpty()) {
             uploadNextDate(engine, it, url, retrievalId, appId, unionId, deviceId,
-                    bundleVersion, appVersion, platform, interceptor, cb);
+                    bundleVersion, appVersion, platform, interceptor, cb, state);
             return;
         }
         if (date.equals(LoganDateUtils.today())) {
             engine.flushNative();
         }
         runJobIndex(engine, jobs, 0, url, retrievalId, appId, unionId, deviceId,
-                bundleVersion, appVersion, platform, interceptor, cb, it);
+                bundleVersion, appVersion, platform, interceptor, cb, it, state);
     }
 
     private static void runJobIndex(LoganEngine engine, List<Job> jobs, int index, String url,
@@ -110,13 +114,15 @@ final class LoganUploadCoordinator {
             @Nullable String platform,
             @Nullable LoganUploadInterceptor interceptor,
             @Nullable LoganUploadResultCallback cb,
-            @Nullable Iterator<String> allDatesIt) {
+            @Nullable Iterator<String> allDatesIt,
+            UploadChainState state) {
         if (index >= jobs.size()) {
             if (allDatesIt == null) {
-                engine.completeUploadChain(cb, true, null, null);
+                engine.completeUploadChain(cb, !state.hasFailure, state.firstFailedFileUrl,
+                        state.firstFailedFilePath);
             } else {
                 uploadNextDate(engine, allDatesIt, url, retrievalId, appId, unionId, deviceId,
-                        bundleVersion, appVersion, platform, interceptor, cb);
+                        bundleVersion, appVersion, platform, interceptor, cb, state);
             }
             return;
         }
@@ -127,13 +133,14 @@ final class LoganUploadCoordinator {
 
         LoganUploadFileResult fileResult = (success, fileUrl, filePath) ->
                 engine.runOnLoganThread(() -> {
-                    if (!success) {
-                        engine.completeUploadChain(cb, false, fileUrl, filePath);
-                        return;
+                    if (success) {
+                        job.onUploadSuccess();
+                    } else {
+                        state.recordFailure(fileUrl, filePath);
                     }
-                    job.onUploadSuccess();
                     runJobIndex(engine, jobs, index + 1, url, retrievalId, appId, unionId, deviceId,
-                            bundleVersion, appVersion, platform, interceptor, cb, allDatesIt);
+                            bundleVersion, appVersion, platform, interceptor, cb, allDatesIt,
+                            state);
                 });
 
         boolean intercepted = false;
@@ -147,12 +154,26 @@ final class LoganUploadCoordinator {
         engine.getNetworkExecutor().execute(() -> {
             boolean ok = LoganHttp.uploadBinary(url, job.uploadBodyFile, headers);
             if (!ok) {
-                engine.runOnLoganThread(() -> engine.completeUploadChain(cb, false, null,
-                        job.uploadBodyFile.getAbsolutePath()));
+                fileResult.complete(false, null, job.uploadBodyFile.getAbsolutePath());
             } else {
                 fileResult.complete(true, null, job.uploadBodyFile.getAbsolutePath());
             }
         });
+    }
+
+    private static final class UploadChainState {
+        boolean hasFailure;
+        @Nullable String firstFailedFileUrl;
+        @Nullable String firstFailedFilePath;
+
+        void recordFailure(@Nullable String fileUrl, @Nullable String filePath) {
+            if (hasFailure) {
+                return;
+            }
+            hasFailure = true;
+            firstFailedFileUrl = fileUrl;
+            firstFailedFilePath = filePath;
+        }
     }
 
     private static Map<String, String> buildHeaders(String date,

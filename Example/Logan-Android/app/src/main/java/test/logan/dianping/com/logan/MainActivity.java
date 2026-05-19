@@ -40,6 +40,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import com.dianping.logan.Logan;
+import com.dianping.logan.LoganUploadFileResult;
+import com.dianping.logan.LoganUploadInterceptor;
+import com.dianping.logan.LoganUploadResultCallback;
 import com.dianping.logan.SendLogCallback;
 
 import org.json.JSONException;
@@ -69,16 +72,23 @@ public class MainActivity extends Activity {
 
     private void initView() {
         Button button = (Button) findViewById(R.id.write_btn);
+        Button clearBtn = (Button) findViewById(R.id.clear_btn);
         Button batchBtn = (Button) findViewById(R.id.write_batch_btn);
         Button sendBtn = (Button) findViewById(R.id.send_btn);
         Button logFileBtn = (Button) findViewById(R.id.show_log_file_btn);
         mTvInfo = (TextView) findViewById(R.id.info);
         mEditIp = (EditText) findViewById(R.id.send_ip);
 
+        clearBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clearLog();
+            }
+        });
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                log(2, "啊哈哈哈哈66666");
+//                log(2, "啊哈哈哈哈66666");
                 logTech(3, "啊哈哈哈哈66666");
                 logBiz(4, "啊哈哈哈哈66666");
             }
@@ -107,6 +117,10 @@ public class MainActivity extends Activity {
                 loganSendByDefault();
             }
         });
+    }
+
+    private void clearLog() {
+        Logan.clearAllLogs();
     }
 
     private void loganTest() {
@@ -190,6 +204,24 @@ public class MainActivity extends Activity {
         final String url = "https://openlogan.inf.test.sankuai.com/logan/upload.json";
         SimpleDateFormat dataFormat = new SimpleDateFormat("yyyy-MM-dd");
         final String date = dataFormat.format(new Date(System.currentTimeMillis()));
+
+        Logan.uploadWithInterception(url, date, "1", "logan-test-unionid", "deviceId", buildVersion, appVersion, null,
+                (interceptorUrl, date1, retrievalId, localFilePath, subFolderName, fileResult) -> {
+
+                  Log.d(TAG, "Logan > date:" + date1 + ", localFilePath: " + localFilePath);
+                  if (TextUtils.isEmpty(subFolderName)) {
+                      fileResult.complete(false, null, localFilePath);
+                  } else {
+                      fileResult.complete(true, interceptorUrl, localFilePath);
+                  }
+                  return true;
+                },
+                (success, fileUrl, filePath) -> {
+
+                    Log.d(TAG, "Logan > success:" + success + ", filePath: " + filePath);
+
+        });
+
 //        Logan.s(url, date, "1", "logan-test-unionid", "deviceId", buildVersion, appVersion, new SendLogCallback() {
 //            @Override
 //            public void onLogSendCompleted(int statusCode, byte[] data) {
