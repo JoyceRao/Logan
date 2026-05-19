@@ -22,6 +22,8 @@
 
 package com.dianping.logan;
 
+import android.util.Log;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -45,15 +47,21 @@ public class Logan {
      */
     public static void init(LoganConfig loganConfig) {
         if (loganConfig == null) {
-            throw new IllegalArgumentException("Logan init config invalid: config is null");
+//            throw new IllegalArgumentException("Logan init config invalid: config is null");
+            Log.e("Logan", "Logan init config invalid: config is null");
+            return;
         }
         String invalidReason = loganConfig.invalidReason();
         if (invalidReason != null) {
-            throw new IllegalArgumentException("Logan init config invalid: " + invalidReason);
+//            throw new IllegalArgumentException("Logan init config invalid: " + invalidReason);
+            Log.e("Logan", "Logan init config invalid: " + invalidReason);
+            return;
         }
         synchronized (LOCK) {
             if (sInitialized) {
-                throw new IllegalStateException("Logan.init was already called");
+//                throw new IllegalStateException("Logan.init was already called");
+                Log.e("Logan", "Logan.init was already called");
+                return;
             }
             File logRoot = new File(loganConfig.mPathPath);
             int days = (int) Math.max(1L, loganConfig.mDay / (24L * 60L * 60L * 1000L));
@@ -70,11 +78,15 @@ public class Logan {
                 ENGINE.initAndAwait(config);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new IllegalStateException("Logan.init interrupted", e);
+//                throw new IllegalStateException("Logan.init interrupted", e);
+                Log.e("Logan", "Logan.init interrupted", e);
+                return;
             }
             if (!ENGINE.isNativeReady()) {
                 String err = CloganNative.loadError();
-                throw new IllegalStateException(err != null ? err : "clogan native init failed");
+//                throw new IllegalStateException(err != null ? err : "clogan native init failed");
+                Log.e("Logan", err != null ? err : "clogan native init failed");
+                return;
             }
             sLogRoot = logRoot;
             sInitialized = true;
