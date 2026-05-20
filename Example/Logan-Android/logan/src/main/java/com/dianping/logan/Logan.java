@@ -329,7 +329,7 @@ public class Logan {
         String loc = validLogStr(location);
         String msg = validLogStr(message);
         String part1 = cn + ":" + validLogStr(threadCount);
-        String part5 = "[" + bm + ", " + fid + ", " + st + ", " + fn + "," + loc + "," + t + "]";
+        String part5 = "[" + bm + "," + fid + "," + st + "," + fn + "," + loc + "," + t + "]";
         return part1 + "|" + lv + "|" + uid + "|" + validLogStr(category) + "|" + part5 + "|" + msg;
     }
 
