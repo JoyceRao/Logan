@@ -34,10 +34,6 @@ public final class LoganPaths {
         return new File(tempDir(logRoot), BIZ);
     }
 
-    public static File mainLogFile(File logRoot, String yyyyMmDd) {
-        return new File(logRoot, yyyyMmDd);
-    }
-
     public static File techLogFile(File logRoot, String yyyyMmDd) {
         return new File(techDir(logRoot), yyyyMmDd);
     }
@@ -46,21 +42,12 @@ public final class LoganPaths {
         return new File(bizDir(logRoot), yyyyMmDd);
     }
 
-    public static File tempMainFile(File logRoot, String yyyyMmDd) {
-        return new File(tempDir(logRoot), yyyyMmDd);
-    }
-
     public static File tempTechFile(File logRoot, String yyyyMmDd) {
         return new File(tempTechDir(logRoot), yyyyMmDd);
     }
 
     public static File tempBizFile(File logRoot, String yyyyMmDd) {
         return new File(tempBizDir(logRoot), yyyyMmDd);
-    }
-
-    /** clogan_open pathname for main channel. */
-    public static String mainPathname(String yyyyMmDd) {
-        return yyyyMmDd;
     }
 
     public static String techPathname(String yyyyMmDd) {

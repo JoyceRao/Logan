@@ -25,8 +25,6 @@ package com.dianping.logan;
 import android.util.Log;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import kotlin.jvm.JvmStatic;
@@ -193,21 +191,6 @@ public class Logan {
 //    }
 
     /**
-     * @deprecated Old query API returned {@code Long}. Use {@link #allFilesInfo()}.
-     * @brief 返回所有日志文件信息
-     */
-//    @Deprecated
-//    public static Map<String, Long> getAllFilesInfo() {
-//        requireInit();
-//        Map<String, String> info = allFilesInfo();
-//        Map<String, Long> result = new LinkedHashMap<>();
-//        for (Map.Entry<String, String> e : info.entrySet()) {
-//            result.put(e.getKey(), Long.valueOf(e.getValue()));
-//        }
-//        return result;
-//    }
-
-    /**
      * 设置 Logan 调试开关。
      *
      * @param debug true 表示开启调试日志，false 表示关闭调试日志
@@ -257,7 +240,7 @@ public class Logan {
     }
 
     /**
-     * 写入主通道日志。
+     * 写入默认技术通道日志。
      *
      * @param type 日志类型，由业务侧定义
      * @param log  日志内容
@@ -265,7 +248,7 @@ public class Logan {
     @JvmStatic
     public static void log(int type, String log) {
         requireInit();
-        ENGINE.write(type, log, LoganChannel.MAIN);
+        ENGINE.write(type, log, LoganChannel.TECH);
     }
 
     /**
@@ -463,19 +446,9 @@ public class Logan {
     }
 
     /**
-     * 获取本地日志文件信息。
-     *
-     * @return key 为日期，value 为文件大小等信息的映射
-     */
-    public static Map<String, String> allFilesInfo() {
-        requireInit();
-        return ENGINE.allFilesInfo();
-    }
-
-    /**
      * 获取本地各通道日志文件信息。
      *
-     * @return 第一层 key 为通道或目录，第二层 key 为日期，value 为文件大小等信息
+     * @return 第一层 key 为日期，第二层 key 为通道，value 为文件大小等信息
      */
     public static Map<String, Map<String, String>> allSubFilesInfo() {
         requireInit();

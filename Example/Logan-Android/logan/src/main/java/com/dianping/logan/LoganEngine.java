@@ -10,7 +10,6 @@ import androidx.annotation.Nullable;
 import java.io.File;
 import java.text.ParseException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -42,7 +41,7 @@ public final class LoganEngine {
     private long minFreeDiskBytes;
     private long maxFileBytes;
     private volatile int maxReversedDays;
-    private String openMainDay;
+    private String openTechDay;
     private volatile boolean nativeReady;
     private volatile boolean released;
     private long lastExpireSweepMs;
@@ -87,8 +86,8 @@ public final class LoganEngine {
         CloganNative.clogan_debug(Logan.isDebugEnabled());
         sweepExpiredLogs();
         String today = LoganDateUtils.today();
-        CloganNative.clogan_open(LoganPaths.mainPathname(today));
-        openMainDay = today;
+        CloganNative.clogan_open(LoganPaths.techPathname(today));
+        openTechDay = today;
         nativeReady = true;
     }
 
@@ -126,22 +125,16 @@ public final class LoganEngine {
                 return;
             }
             maybeSweepExpire();
-            ensureMainDayOpen();
+            ensureTechDayOpen();
             switch (channel) {
-                case MAIN:
-                    writeCurrentOpen(type, log);
-                    break;
                 case TECH:
-                    CloganNative.clogan_open(LoganPaths.techPathname(openMainDay));
                     writeCurrentOpen(type, log);
-                    CloganNative.clogan_flush();
-                    CloganNative.clogan_open(LoganPaths.mainPathname(openMainDay));
                     break;
                 case BIZ:
-                    CloganNative.clogan_open(LoganPaths.bizPathname(openMainDay));
+                    CloganNative.clogan_open(LoganPaths.bizPathname(openTechDay));
                     writeCurrentOpen(type, log);
                     CloganNative.clogan_flush();
-                    CloganNative.clogan_open(LoganPaths.mainPathname(openMainDay));
+                    CloganNative.clogan_open(LoganPaths.techPathname(openTechDay));
                     break;
                 default:
                     break;
@@ -180,13 +173,11 @@ public final class LoganEngine {
     void clearAllLogs() {
         runOnLoganThread(() -> {
             Set<String> dates = new HashSet<>();
-            collectValidDateFiles(logRoot, dates);
             collectValidDateFiles(LoganPaths.techDir(logRoot), dates);
             collectValidDateFiles(LoganPaths.bizDir(logRoot), dates);
             for (String d : dates) {
                 deleteSix(d);
             }
-            LoganIoUtils.deleteChildFiles(LoganPaths.tempDir(logRoot));
             LoganIoUtils.deleteChildFiles(LoganPaths.tempTechDir(logRoot));
             LoganIoUtils.deleteChildFiles(LoganPaths.tempBizDir(logRoot));
             ensureDirectoryTree();
@@ -235,25 +226,6 @@ public final class LoganEngine {
         postUploadCallback(cb, success, fileUrl, filePath);
     }
 
-    Map<String, String> allFilesInfo() {
-        if (Thread.currentThread() == loganHandler.getLooper().getThread()) {
-            return computeMainFilesInfo();
-        }
-        final CountDownLatch latch = new CountDownLatch(1);
-        final Map<String, String>[] holder = new Map[1];
-        loganHandler.post(() -> {
-            holder[0] = computeMainFilesInfo();
-            latch.countDown();
-        });
-        try {
-            latch.await(5, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return Collections.emptyMap();
-        }
-        return holder[0] != null ? holder[0] : Collections.emptyMap();
-    }
-
     Map<String, Map<String, String>> allSubFilesInfo() {
         if (Thread.currentThread() == loganHandler.getLooper().getThread()) {
             return computeSubFilesInfo();
@@ -271,23 +243,6 @@ public final class LoganEngine {
             return Collections.emptyMap();
         }
         return holder[0] != null ? holder[0] : Collections.emptyMap();
-    }
-
-    private Map<String, String> computeMainFilesInfo() {
-        Map<String, String> m = new LinkedHashMap<>();
-        if (logRoot == null || !logRoot.isDirectory()) {
-            return m;
-        }
-        File[] list = logRoot.listFiles();
-        if (list == null) {
-            return m;
-        }
-        for (File f : list) {
-            if (f.isFile() && LoganDateUtils.isValidYyyyMmDd(f.getName())) {
-                m.put(f.getName(), String.valueOf(f.length()));
-            }
-        }
-        return m;
     }
 
     private Map<String, Map<String, String>> computeSubFilesInfo() {
@@ -332,11 +287,11 @@ public final class LoganEngine {
         }
     }
 
-    private void ensureMainDayOpen() {
+    private void ensureTechDayOpen() {
         String today = LoganDateUtils.today();
-        if (openMainDay == null || !openMainDay.equals(today)) {
-            CloganNative.clogan_open(LoganPaths.mainPathname(today));
-            openMainDay = today;
+        if (openTechDay == null || !openTechDay.equals(today)) {
+            CloganNative.clogan_open(LoganPaths.techPathname(today));
+            openTechDay = today;
         }
     }
 
@@ -365,7 +320,6 @@ public final class LoganEngine {
         }
         long cutoff = LoganDateUtils.cutoffDayStartMillis(maxReversedDays);
         Set<String> dates = new HashSet<>();
-        collectValidDateFiles(logRoot, dates);
         collectValidDateFiles(LoganPaths.techDir(logRoot), dates);
         collectValidDateFiles(LoganPaths.bizDir(logRoot), dates);
         for (String d : dates) {
@@ -384,7 +338,6 @@ public final class LoganEngine {
     }
 
     private void sweepTempOldFiles(long cutoffDayStart) {
-        sweepTempDir(LoganPaths.tempDir(logRoot), cutoffDayStart);
         sweepTempDir(LoganPaths.tempTechDir(logRoot), cutoffDayStart);
         sweepTempDir(LoganPaths.tempBizDir(logRoot), cutoffDayStart);
     }
@@ -417,10 +370,8 @@ public final class LoganEngine {
     }
 
     private void deleteSix(String date) {
-        LoganIoUtils.deleteFileQuietly(LoganPaths.mainLogFile(logRoot, date));
         LoganIoUtils.deleteFileQuietly(LoganPaths.techLogFile(logRoot, date));
         LoganIoUtils.deleteFileQuietly(LoganPaths.bizLogFile(logRoot, date));
-        LoganIoUtils.deleteFileQuietly(LoganPaths.tempMainFile(logRoot, date));
         LoganIoUtils.deleteFileQuietly(LoganPaths.tempTechFile(logRoot, date));
         LoganIoUtils.deleteFileQuietly(LoganPaths.tempBizFile(logRoot, date));
     }
@@ -435,7 +386,6 @@ public final class LoganEngine {
     }
 
     private void clearStartupTemp() {
-        LoganIoUtils.deleteChildFiles(LoganPaths.tempDir(logRoot));
         LoganIoUtils.deleteChildFiles(LoganPaths.tempTechDir(logRoot));
         LoganIoUtils.deleteChildFiles(LoganPaths.tempBizDir(logRoot));
     }

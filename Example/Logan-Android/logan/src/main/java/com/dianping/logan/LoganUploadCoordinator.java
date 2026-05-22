@@ -214,7 +214,6 @@ final class LoganUploadCoordinator {
 
     private static TreeSet<String> collectAllDates(File logRoot) {
         TreeSet<String> out = new TreeSet<>();
-        addDatesFromDir(logRoot, out);
         addDatesFromDir(LoganPaths.techDir(logRoot), out);
         addDatesFromDir(LoganPaths.bizDir(logRoot), out);
         return out;
@@ -237,9 +236,7 @@ final class LoganUploadCoordinator {
 
     private static List<Job> buildJobs(File root, String date) {
         boolean today = date.equals(LoganDateUtils.today());
-        ArrayList<Job> jobs = new ArrayList<>(3);
-        addChannel(root, date, today, LoganPaths.mainLogFile(root, date),
-                LoganPaths.tempMainFile(root, date), null, jobs);
+        ArrayList<Job> jobs = new ArrayList<>(2);
         addChannel(root, date, today, LoganPaths.techLogFile(root, date),
                 LoganPaths.tempTechFile(root, date), LoganPaths.TECH, jobs);
         addChannel(root, date, today, LoganPaths.bizLogFile(root, date),

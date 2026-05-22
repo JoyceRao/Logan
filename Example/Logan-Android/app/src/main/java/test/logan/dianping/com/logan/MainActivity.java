@@ -22,7 +22,6 @@
 
 package test.logan.dianping.com.logan;
 
-import static com.dianping.logan.Logan.allFilesInfo;
 import static com.dianping.logan.Logan.allSubFilesInfo;
 import static com.dianping.logan.Logan.log;
 import static com.dianping.logan.Logan.logBiz;
@@ -155,18 +154,8 @@ public class MainActivity extends Activity {
     }
 
     private void loganFilesInfo() {
-        Map<String, String> map = allFilesInfo();
         Map<String, Map<String, String>> subMap = allSubFilesInfo();
         StringBuilder info = new StringBuilder();
-        if (map != null) {
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                info.append("文件日期：").append(entry.getKey()).append("  文件大小（bytes）：").append(
-                        entry.getValue()).append("\n");
-                String line = "文件日期：" + entry.getKey()
-                        + "  文件大小（bytes）：" + entry.getValue();
-                Log.d(TAG, line);
-            }
-        }
         if (subMap != null) {
             File logRoot = new File(getApplicationContext().getExternalFilesDir(null), FILE_NAME);
             for (Map.Entry<String, Map<String, String>> dateEntry : subMap.entrySet()) {
