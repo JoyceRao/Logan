@@ -60,7 +60,8 @@
 - 上传与清理调整：
   - `LoganUploadCoordinator` 仅上传 `TECH`、`BIZ` 两个通道文件。
   - 清理逻辑仅处理 `TECH`、`BIZ` 及对应临时文件。
-  - 根目录主日志文件（原 `MAIN` 文件）不再参与上传和清理。
+  - 清理时额外兼容删除主目录残留的 `date` 文件（若存在）。
+  - 根目录主日志文件（原 `MAIN` 文件）不再参与上传。
 
 - API 与示例同步：
   - 移除 `allFilesInfo()`，保留 `allSubFilesInfo()` 作为通道文件信息查询入口。

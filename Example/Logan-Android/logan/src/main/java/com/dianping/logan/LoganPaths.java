@@ -34,6 +34,10 @@ public final class LoganPaths {
         return new File(tempDir(logRoot), BIZ);
     }
 
+    public static File mainLogFile(File logRoot, String yyyyMmDd) {
+        return new File(logRoot, yyyyMmDd);
+    }
+
     public static File techLogFile(File logRoot, String yyyyMmDd) {
         return new File(techDir(logRoot), yyyyMmDd);
     }

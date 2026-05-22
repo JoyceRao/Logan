@@ -370,6 +370,7 @@ public final class LoganEngine {
     }
 
     private void deleteSix(String date) {
+        LoganIoUtils.deleteFileQuietly(LoganPaths.mainLogFile(logRoot, date));
         LoganIoUtils.deleteFileQuietly(LoganPaths.techLogFile(logRoot, date));
         LoganIoUtils.deleteFileQuietly(LoganPaths.bizLogFile(logRoot, date));
         LoganIoUtils.deleteFileQuietly(LoganPaths.tempTechFile(logRoot, date));
