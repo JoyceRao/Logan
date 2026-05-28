@@ -23,6 +23,7 @@
 package test.logan.dianping.com.logan;
 
 import static com.dianping.logan.Logan.allSubFilesInfo;
+import static com.dianping.logan.Logan.allLogCreateTimes;
 import static com.dianping.logan.Logan.log;
 import static com.dianping.logan.Logan.logBiz;
 import static com.dianping.logan.Logan.logTech;
@@ -155,6 +156,7 @@ public class MainActivity extends Activity {
 
     private void loganFilesInfo() {
         Map<String, Map<String, String>> subMap = allSubFilesInfo();
+        Map<String, Long> kvMap = allLogCreateTimes();
         StringBuilder info = new StringBuilder();
         if (subMap != null) {
             File logRoot = new File(getApplicationContext().getExternalFilesDir(null), FILE_NAME);
@@ -177,6 +179,14 @@ public class MainActivity extends Activity {
                 }
             }
         }
+        if (kvMap != null && !kvMap.isEmpty()) {
+            info.append("KV存储：\n");
+            for (Map.Entry<String, Long> entry : kvMap.entrySet()) {
+                String line = "key：" + entry.getKey() + "  value：" + entry.getValue();
+                info.append(line).append("\n");
+                Log.d(TAG, line);
+            }
+        }
         mTvInfo.setText(info.toString());
     }
 
@@ -195,9 +205,9 @@ public class MainActivity extends Activity {
         final String date = dataFormat.format(new Date(System.currentTimeMillis()));
 
         Logan.uploadWithInterception(url, date, "1", "logan-test-unionid", "deviceId", buildVersion, appVersion, null,
-                (interceptorUrl, date1, retrievalId, localFilePath, subFolderName, fileResult) -> {
+                (interceptorUrl, date1, retrievalId, localFilePath, subFolderName, localCreateTime, fileResult) -> {
 
-                  Log.d(TAG, "Logan > date:" + date1 + ", localFilePath: " + localFilePath);
+                  Log.d(TAG, "Logan > date:" + date1 + ", localCreateTime: " + localCreateTime + ", localFilePath: " + localFilePath);
                   if (TextUtils.isEmpty(subFolderName)) {
                       fileResult.complete(false, null, localFilePath);
                   } else {

@@ -38,6 +38,7 @@ public final class LoganEngine {
 
     private File logRoot;
     private File cacheRoot;
+    private LoganLogCreateTimeStore logCreateTimeStore;
     private long minFreeDiskBytes;
     private long maxFileBytes;
     private volatile int maxReversedDays;
@@ -68,6 +69,8 @@ public final class LoganEngine {
     private void initOnQueue(LoganInitConfig c) {
         logRoot = c.loganLogDirectory;
         cacheRoot = c.cacheDirectory;
+        logCreateTimeStore = new LoganLogCreateTimeStore(
+                new File(logRoot, ".logan_create_time.properties"));
         minFreeDiskBytes = c.minFreeDiskBytes;
         maxFileBytes = c.maxFileBytes;
         maxReversedDays = c.maxReversedDays;
@@ -85,8 +88,10 @@ public final class LoganEngine {
         CloganNative.clogan_init(cachePath, logPath, maxFileInt, key, iv);
         CloganNative.clogan_debug(Logan.isDebugEnabled());
         sweepExpiredLogs();
+        sweepExpiredCreateTimes();
         String today = LoganDateUtils.today();
         CloganNative.clogan_open(LoganPaths.techPathname(today));
+        recordCreateTime(LoganPaths.techLogFile(logRoot, today));
         openTechDay = today;
         nativeReady = true;
     }
@@ -132,9 +137,11 @@ public final class LoganEngine {
                     break;
                 case BIZ:
                     CloganNative.clogan_open(LoganPaths.bizPathname(openTechDay));
+                    recordCreateTime(LoganPaths.bizLogFile(logRoot, openTechDay));
                     writeCurrentOpen(type, log);
                     CloganNative.clogan_flush();
                     CloganNative.clogan_open(LoganPaths.techPathname(openTechDay));
+                    recordCreateTime(LoganPaths.techLogFile(logRoot, openTechDay));
                     break;
                 default:
                     break;
@@ -182,6 +189,20 @@ public final class LoganEngine {
             LoganIoUtils.deleteChildFiles(LoganPaths.tempBizDir(logRoot));
             ensureDirectoryTree();
         });
+    }
+
+    long getLogCreateTime(String key) {
+        if (logCreateTimeStore == null) {
+            return -1L;
+        }
+        return logCreateTimeStore.get(key);
+    }
+
+    Map<String, Long> allLogCreateTimes() {
+        if (logCreateTimeStore == null) {
+            return Collections.emptyMap();
+        }
+        return logCreateTimeStore.snapshot();
     }
 
     File getLogRoot() {
@@ -291,6 +312,7 @@ public final class LoganEngine {
         String today = LoganDateUtils.today();
         if (openTechDay == null || !openTechDay.equals(today)) {
             CloganNative.clogan_open(LoganPaths.techPathname(today));
+            recordCreateTime(LoganPaths.techLogFile(logRoot, today));
             openTechDay = today;
         }
     }
@@ -337,6 +359,34 @@ public final class LoganEngine {
         sweepTempOldFiles(cutoff);
     }
 
+    private void sweepExpiredCreateTimes() {
+        if (logRoot == null || logCreateTimeStore == null) {
+            return;
+        }
+        long cutoff = System.currentTimeMillis() - 30L * 24L * 60L * 60L * 1000L;
+        logCreateTimeStore.purgeExpiredOrInvalid(cutoff, logRoot);
+    }
+
+    private void recordCreateTime(File file) {
+        if (file == null || logCreateTimeStore == null) {
+            return;
+        }
+        if (isTempPath(file)) {
+            return;
+        }
+        logCreateTimeStore.putIfAbsent(file.getAbsolutePath(), System.currentTimeMillis());
+    }
+
+    private boolean isTempPath(File file) {
+        if (file == null || logRoot == null) {
+            return false;
+        }
+        File tempDir = LoganPaths.tempDir(logRoot);
+        String tempPath = tempDir.getAbsolutePath() + File.separator;
+        String path = file.getAbsolutePath();
+        return path.equals(tempDir.getAbsolutePath()) || path.startsWith(tempPath);
+    }
+
     private void sweepTempOldFiles(long cutoffDayStart) {
         sweepTempDir(LoganPaths.tempTechDir(logRoot), cutoffDayStart);
         sweepTempDir(LoganPaths.tempBizDir(logRoot), cutoffDayStart);
@@ -370,11 +420,19 @@ public final class LoganEngine {
     }
 
     private void deleteSix(String date) {
-        LoganIoUtils.deleteFileQuietly(LoganPaths.mainLogFile(logRoot, date));
-        LoganIoUtils.deleteFileQuietly(LoganPaths.techLogFile(logRoot, date));
-        LoganIoUtils.deleteFileQuietly(LoganPaths.bizLogFile(logRoot, date));
+        File mainFile = LoganPaths.mainLogFile(logRoot, date);
+        File techFile = LoganPaths.techLogFile(logRoot, date);
+        File bizFile = LoganPaths.bizLogFile(logRoot, date);
+        LoganIoUtils.deleteFileQuietly(mainFile);
+        LoganIoUtils.deleteFileQuietly(techFile);
+        LoganIoUtils.deleteFileQuietly(bizFile);
         LoganIoUtils.deleteFileQuietly(LoganPaths.tempTechFile(logRoot, date));
         LoganIoUtils.deleteFileQuietly(LoganPaths.tempBizFile(logRoot, date));
+        if (logCreateTimeStore != null) {
+            logCreateTimeStore.remove(mainFile.getAbsolutePath());
+            logCreateTimeStore.remove(techFile.getAbsolutePath());
+            logCreateTimeStore.remove(bizFile.getAbsolutePath());
+        }
     }
 
     private void ensureDirectoryTree() {

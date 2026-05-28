@@ -10,5 +10,6 @@ public interface LoganUploadInterceptor {
             @NonNull String url,
             @NonNull String localFilePath,
             @Nullable String subFolderName,
+            long localCreateTime,
             @NonNull LoganUploadFileResult fileResult);
 }

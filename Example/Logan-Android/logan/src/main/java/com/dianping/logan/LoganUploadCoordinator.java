@@ -145,8 +145,11 @@ final class LoganUploadCoordinator {
 
         boolean intercepted = false;
         if (interceptor != null) {
+            long localCreateTime = engine.getLogCreateTime(
+                    job.sourceFile.getAbsolutePath());
             intercepted = interceptor.interceptUpload(date, retrievalId, url,
-                    job.uploadBodyFile.getAbsolutePath(), job.subFolderName, fileResult);
+                    job.uploadBodyFile.getAbsolutePath(), job.subFolderName, localCreateTime,
+                    fileResult);
         }
         if (intercepted) {
             return;

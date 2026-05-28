@@ -482,6 +482,27 @@ public class Logan {
         ENGINE.clearAllLogs();
     }
 
+    /**
+     * 通过 key 获取日志创建时间。
+     *
+     * @param key 日志路径 + 文件名
+     * @return 创建时间戳，毫秒；不存在返回 -1
+     */
+    public static long getLogCreateTime(String key) {
+        requireInit();
+        return ENGINE.getLogCreateTime(key);
+    }
+
+    /**
+     * 获取日志创建时间 KV 的快照。
+     *
+     * @return key 为日志路径 + 文件名，value 为创建时间戳（毫秒）
+     */
+    public static Map<String, Long> allLogCreateTimes() {
+        requireInit();
+        return ENGINE.allLogCreateTimes();
+    }
+
     private static void requireInit() {
         if (!sInitialized || sLogRoot == null) {
             throw new IllegalStateException("Logan is not initialized. Call Logan.init(...) first.");
