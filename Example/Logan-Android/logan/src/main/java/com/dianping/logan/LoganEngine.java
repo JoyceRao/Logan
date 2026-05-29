@@ -198,6 +198,13 @@ public final class LoganEngine {
         return logCreateTimeStore.get(key);
     }
 
+    void removeLogCreateTime(String key) {
+        if (logCreateTimeStore == null || key == null || key.length() == 0) {
+            return;
+        }
+        logCreateTimeStore.remove(key);
+    }
+
     Map<String, Long> allLogCreateTimes() {
         if (logCreateTimeStore == null) {
             return Collections.emptyMap();
@@ -374,7 +381,7 @@ public final class LoganEngine {
         if (isTempPath(file)) {
             return;
         }
-        logCreateTimeStore.putIfAbsent(file.getAbsolutePath(), System.currentTimeMillis());
+        logCreateTimeStore.putIfAbsentOrStale(file.getAbsolutePath(), System.currentTimeMillis());
     }
 
     private boolean isTempPath(File file) {
@@ -428,11 +435,9 @@ public final class LoganEngine {
         LoganIoUtils.deleteFileQuietly(bizFile);
         LoganIoUtils.deleteFileQuietly(LoganPaths.tempTechFile(logRoot, date));
         LoganIoUtils.deleteFileQuietly(LoganPaths.tempBizFile(logRoot, date));
-        if (logCreateTimeStore != null) {
-            logCreateTimeStore.remove(mainFile.getAbsolutePath());
-            logCreateTimeStore.remove(techFile.getAbsolutePath());
-            logCreateTimeStore.remove(bizFile.getAbsolutePath());
-        }
+        removeLogCreateTime(mainFile.getAbsolutePath());
+        removeLogCreateTime(techFile.getAbsolutePath());
+        removeLogCreateTime(bizFile.getAbsolutePath());
     }
 
     private void ensureDirectoryTree() {

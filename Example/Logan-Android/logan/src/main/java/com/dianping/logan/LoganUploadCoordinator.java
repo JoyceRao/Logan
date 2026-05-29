@@ -134,7 +134,7 @@ final class LoganUploadCoordinator {
         LoganUploadFileResult fileResult = (success, fileUrl, filePath) ->
                 engine.runOnLoganThread(() -> {
                     if (success) {
-                        job.onUploadSuccess();
+                        job.onUploadSuccess(engine);
                     } else {
                         state.recordFailure(fileUrl, filePath);
                     }
@@ -278,9 +278,12 @@ final class LoganUploadCoordinator {
             this.subFolderName = subFolderName;
         }
 
-        void onUploadSuccess() {
+        void onUploadSuccess(LoganEngine engine) {
             LoganIoUtils.deleteFileQuietly(sourceFile);
             LoganIoUtils.deleteFileQuietly(tempFile);
+            if (engine != null) {
+                engine.removeLogCreateTime(sourceFile.getAbsolutePath());
+            }
         }
     }
 }

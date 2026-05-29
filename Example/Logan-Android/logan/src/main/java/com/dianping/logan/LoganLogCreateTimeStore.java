@@ -61,6 +61,28 @@ final class LoganLogCreateTimeStore {
         }
     }
 
+    void putIfAbsentOrStale(String key, long createTimeMs) {
+        if (key == null || key.length() == 0 || createTimeMs <= 0L) {
+            return;
+        }
+        rwLock.writeLock().lock();
+        try {
+            Long current = values.get(key);
+            if (current == null) {
+                values.put(key, createTimeMs);
+                persistLocked();
+                return;
+            }
+            File keyFile = new File(key);
+            if (!keyFile.isFile()) {
+                values.put(key, createTimeMs);
+                persistLocked();
+            }
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
     void remove(String key) {
         if (key == null || key.length() == 0) {
             return;
